@@ -3,15 +3,6 @@ In this project, instrument classification and vocal source separation is done f
 
 Trained on the [MoisesDB](https://arxiv.org/abs/2307.15913) dataset — used 80 songs, each with isolated stems (vocals, drums, guitar, bass, etc.). The goal is to take a full mixture track and pull out just the vocals.
 
-@misc{pereira2023moisesdb,
-      title={Moisesdb: A dataset for source separation beyond 4-stems}, 
-      author={Igor Pereira and Felipe Araújo and Filip Korzeniowski and Richard Vogl},
-      year={2023},
-      eprint={2307.15913},
-      archivePrefix={arXiv},
-      primaryClass={cs.SD}
-}
-
 ---
 
 ## What's in the notebook
@@ -79,3 +70,16 @@ The branches are combined by summation rather than concatenation (that's the "Sm
 [MoisesDB](https://zenodo.org/record/10520051) — 80 songs with isolated stems. Uploaded to Kaggle as a private dataset. Each song folder contains per-instrument subdirectories with `.wav` files. No external library required — stems are loaded directly from the file structure.
 
 All audio resampled to 16kHz mono. STFT computed with n_fft=1024, hop=256 (≈16ms per frame). Each training example covers ~16 seconds of audio (MAX_LEN=1024 frames).
+
+### Citation
+
+```bibtex
+@misc{pereira2023moisesdb,
+      title={Moisesdb: A dataset for source separation beyond 4-stems}, 
+      author={Igor Pereira and Felipe Araújo and Filip Korzeniowski and Richard Vogl},
+      year={2023},
+      eprint={2307.15913},
+      archivePrefix={arXiv},
+      primaryClass={cs.SD}
+}
+```
