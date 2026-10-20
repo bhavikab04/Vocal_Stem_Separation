@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vocal Separator: hear what’s inside a song</title>
+<meta name="description" content="Pre-separated demos from a fine-tuned HTDemucs vocal separation project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1118;--panel:#151a24;--line:#252d3d;--fg:#e9edf5;--mut:#8b95a9;--voc:#ff7f9e;--ins:#4fd1e8;--orig:#b4bed2;--err:#ff8a8a;color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--bg:#f5f6fa;--panel:#fff;--line:#dde2ec;--fg:#141824;--mut:#5b657a;--voc:#d92f64;--ins:#0d8aa3;--orig:#6a7489;--err:#c0392b;color-scheme:light}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 "Hanken Grotesk",system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto 0;height:520px;z-index:-1;background:radial-gradient(700px 320px at 15% -60px,color-mix(in srgb,var(--voc) 14%,transparent),transparent),radial-gradient(700px 320px at 85% -60px,color-mix(in srgb,var(--ins) 14%,transparent),transparent)}
+.wrap{max-width:960px;margin:0 auto;padding:0 22px}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600}
+nav{display:flex;gap:22px;font-size:15px}
+nav a{color:var(--mut);text-decoration:none}nav a:hover{color:var(--fg)}
+h1{font:400 clamp(2.7rem,7vw,4.8rem)/1 "Instrument Serif",Georgia,serif;letter-spacing:-.02em;margin:56px 0 18px;max-width:12em}
+h2{font:400 clamp(1.8rem,4vw,2.4rem)/1.1 "Instrument Serif",Georgia,serif;margin:0 0 14px}
+.lead{color:var(--mut);max-width:36em;font-size:18px;margin:0 0 34px}
+#hero{display:block;width:100%;height:170px;margin:0 0 26px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.top{display:flex;gap:8px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line)}
+.song{background:transparent;border:1px solid var(--line);color:var(--fg);border-radius:12px;padding:8px 14px;text-align:left;font:inherit;cursor:pointer;line-height:1.3}
+.song small{display:block;color:var(--mut);font-size:13px}
+.song[aria-pressed=true]{border-color:var(--fg);background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.presets{display:flex;gap:8px;flex-wrap:wrap;padding:14px 16px 0;align-items:center}
+.presets span{color:var(--mut);font-size:14px;margin-right:4px}
+button{font:inherit;cursor:pointer}
+.sm{background:transparent;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:3px 13px;font-size:13px;text-decoration:none;display:inline-block;line-height:1.6}
+.sm:hover{color:var(--fg);border-color:var(--mut)}
+.sm[aria-pressed=true]{background:var(--c,var(--fg));border-color:var(--c,var(--fg));color:var(--bg)}
+:focus-visible{outline:2px solid var(--ins);outline-offset:2px}
+#state{padding:26px 20px;color:var(--mut)}
+.lane{padding:16px 20px 18px;border-top:1px solid var(--line)}.lane:first-child{border-top:0}
+.lh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.lh b{font-weight:600}.dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.lc{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+input[type=range]{width:90px;accent-color:var(--c)}
+.wv{position:relative;height:84px;cursor:pointer;border-radius:10px;background:color-mix(in srgb,var(--c) 6%,transparent)}
+.wv canvas{width:100%;height:100%;display:block;transition:opacity .2s}
+.off .wv canvas{opacity:.26}
+.ph{position:absolute;top:0;bottom:0;left:0;width:2px;background:var(--fg);pointer-events:none;border-radius:2px}
+#lanes.dim{opacity:.35;pointer-events:none}
+.tp{display:flex;align-items:center;gap:14px;padding:16px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.play{width:50px;height:50px;border-radius:50%;border:0;background:var(--fg);color:var(--bg);display:grid;place-items:center}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.sp{flex:1}
+.hint{color:var(--mut);font-size:14px;margin:14px 2px 0}
+section{padding:84px 0 0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:34px;margin-top:30px}
+.cols h3{font-size:17px;margin:0 0 6px}.cols p{color:var(--mut);margin:0}
+.res{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:30px 0 6px}
+.res .num{font-size:clamp(1.8rem,5vw,2.8rem);letter-spacing:-.02em}
+.res .arrow{color:var(--mut)}
+.code{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;overflow-x:auto;margin-top:22px}
+.code pre{margin:0;font:14px/1.7 "JetBrains Mono",ui-monospace,monospace}
+.code button{position:absolute;top:12px;right:12px}
+footer{color:var(--mut);font-size:14px;padding:70px 0 46px}
+footer a,.lead a,.cols a{color:var(--fg)}
+footer ul{margin:10px 0 16px;padding-left:18px}footer li{margin:4px 0}footer p{max-width:46em}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3 12V9M7 12V5M11 12V8M15 12V3M19 12V7" stroke="var(--voc)"/><path d="M3 12v2M7 12v4M11 12v7M15 12v5M19 12v3" stroke="var(--ins)"/></svg>Vocal Separator</div>
+  <nav><a href="#how">How it works</a><a href="#run">Run it yourself</a><a id="repo" href="#">GitHub</a></nav>
+</div></header>
+
+<main class="wrap">
+  <h1>Hear what’s inside a song.</h1>
+  <p class="lead">One mixed track goes in. Isolated vocals and a backing track come out. Pick a demo, then solo each part, loop a section and compare it with the original.</p>
+  <canvas id="hero" aria-hidden="true"></canvas>
+
+  <div class="box">
+    <div class="top" id="songs"></div>
+    <div class="presets" id="presets"><span>Listen to</span>
+      <button class="sm" data-p="both">Both stems</button>
+      <button class="sm" data-p="orig">Original</button>
+      <button class="sm" data-p="voc">Vocals only</button>
+      <button class="sm" data-p="ins">Instrumental only</button>
+    </div>
+    <div id="state" hidden></div>
+    <div id="lanes"></div>
+    <div class="tp">
+      <button class="play" id="pp" aria-label="Play"><svg id="ico" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+      <span class="num" id="tm">0:00 / 0:00</span>
+      <button class="sm" id="lp" aria-pressed="false">Loop</button>
+    </div>
+  </div>
+  <p class="hint">Space plays and pauses, the arrow keys skip 5 seconds, and clicking a waveform seeks. These demos were separated in advance.</p>
+
+  <section id="how">
+    <h2>How it was built</h2>
+    <div class="cols">
+      <div><h3>Data</h3><p>80 multi-stem songs from MoisesDB. Stems are grouped into vocals, drums, bass and other, and mixed on the fly into 7.8 second stereo crops, half of them remixes of stems from different songs.</p></div>
+      <div><h3>Model</h3><p>A pretrained HTDemucs fine-tuned with a vocal-weighted waveform loss. It followed two from-scratch models, a ViT-style spectrogram network and a hybrid spectrogram and waveform TasNet, which could not learn enough from 80 songs.</p></div>
+      <div><h3>Result</h3><p>Measured on 10 held-out songs. Fine-tuning moved a strong pretrained model by only a few hundredths of a dB, so the main finding is that small datasets add little on top of large-scale pretraining.</p></div>
+    </div>
+    <div class="res"><span class="num">11.51 dB</span><span class="arrow">pretrained</span><span class="num">11.54 dB</span><span class="arrow">fine-tuned, vocal SDR</span></div>
+  </section>
+
+  <section id="run">
+    <h2>Run it on your own songs</h2>
+    <p class="lead" style="margin-bottom:0">The full app, with uploads, runs on your computer. You need Python 3.10 or newer and ffmpeg.</p>
+    <div class="code"><button class="sm" id="copy">Copy</button><pre id="cmd">git clone https://github.com/bhavikab04/Vocal_Stem_Separation.git
+cd YOUR-REPO
+bash run.sh        # Windows: double-click run.bat
+# then open http://localhost:8000</pre></div>
+  </section>
+</main>
+<footer><div class="wrap">
+  <b>Audio credits</b>
+  <ul id="credits"></ul>
+  <p>Each demo was trimmed to about 30 seconds and separated into vocals and instrumental by an AI model, so these are modified versions of the originals. This page is a non-commercial portfolio project, and the artists do not endorse it. Built with PyTorch, Demucs and FastAPI.</p>
+</div></footer>
+
+<script>
+/* ===== EDIT THESE ===== */
+const REPO = "https://github.com/YOUR-USERNAME/YOUR-REPO";
+/* url = the page where you found each track (paste the real links); site = where it is hosted */
+const SAMPLES = [
+  { title: "Mirrors", artist: "Superhumanoids", dir: "samples/mirrors/", site: "Free Music Archive", url: "", lic: "CC BY-NC", licUrl: "https://freemusicarchive.org/music/Superhumanoids/Parasite_Paradise/02_-_Superhumanoids_-_Mirrors/" },
+  { title: "The Big Bubble", artist: "Mole", dir: "samples/the-big-bubble/", site: "Free Music Archive", url: "", lic: "CC BY-NC", licUrl: "https://freemusicarchive.org/music/Mole/Were_Always_Home/6_Mole_-_The_Big_Bubble/" },
+  { title: "i feel free", artist: "suKina", dir: "samples/i-feel-free/", site: "Free Music Archive", url: "", lic: "CC BY-NC 4.0", licUrl: "https://creativecommons.org/licenses/by-nc/4.0/" }
+];
+/* each folder holds: original.mp3, vocals.mp3, instrumental.mp3 */
+
+const $ = s => document.querySelector(s);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtT = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+function fit(c) { const r = c.getBoundingClientRect(), d = devicePixelRatio || 1; c.width = r.width * d; c.height = r.height * d; c.getContext("2d").setTransform(d, 0, 0, d, 0, 0); return r; }
+
+const L = [
+  { k: "orig", name: "Original", c: "--orig", f: "original.mp3" },
+  { k: "voc", name: "Vocals", c: "--voc", f: "vocals.mp3" },
+  { k: "ins", name: "Instrumental", c: "--ins", f: "instrumental.mp3" }
+];
+let ac, dur = 0, off = 0, t0 = 0, playing = false, loop = false, cur = -1, preset = "both";
+$("#repo").href = REPO; $("#cmd").textContent = $("#cmd").textContent.replace("https://github.com/YOUR-USERNAME/YOUR-REPO.git", REPO + ".git").replace("cd YOUR-REPO", "cd " + REPO.split("/").pop());
+
+/* ---------- credits ---------- */
+$("#credits").innerHTML = SAMPLES.map(s => {
+  const src = s.url ? ` (<a href="${s.url}" target="_blank" rel="noopener">${s.site || "source"}</a>)` : (s.site ? ` (${s.site})` : "");
+  const lic = s.licUrl ? `<a href="${s.licUrl}" target="_blank" rel="noopener">${s.lic}</a>` : s.lic;
+  return `<li>“${s.title}” by ${s.artist}${src}, licensed under ${lic}.</li>`;
+}).join("");
+
+/* ---------- build static UI ---------- */
+$("#songs").innerHTML = SAMPLES.map((s, i) => `<button class="song" data-i="${i}" aria-pressed="false">${s.title}<small>${s.artist}</small></button>`).join("");
+$("#lanes").innerHTML = L.map(l => `
+  <div class="lane" data-k="${l.k}" style="--c:var(${l.c})">
+    <div class="lh"><span class="dot"></span><b>${l.name}</b>
+      <div class="lc">
+        <button class="sm" data-a="solo" aria-pressed="false" title="Hear only this track">Solo</button>
+        <button class="sm" data-a="mute" aria-pressed="false" title="Silence this track">Mute</button>
+        <input type="range" min="0" max="1" step=".01" value="1" aria-label="${l.name} volume">
+        <a class="sm dl" download>Download</a>
+      </div></div>
+    <div class="wv"><canvas></canvas><i class="ph"></i></div>
+  </div>`).join("");
+L.forEach(l => {
+  l.el = $(`.lane[data-k=${l.k}]`); l.cv = l.el.querySelector("canvas"); l.ph = l.el.querySelector(".ph");
+  l.vol = 1; l.mute = false; l.solo = false;
+  l.el.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { l[b.dataset.a] = !l[b.dataset.a]; preset = ""; sync(); });
+  l.el.querySelector("input").oninput = e => { l.vol = +e.target.value; applyGains(); };
+  l.el.querySelector(".wv").onclick = e => { const r = e.currentTarget.getBoundingClientRect(); seek((e.clientX - r.left) / r.width); };
+});
+
+/* ---------- mixing state ---------- */
+const gainFor = l => (L.some(x => x.solo) ? l.solo : !l.mute) ? l.vol : 0;
+function applyGains() { L.forEach(l => { if (l.g) l.g.gain.value = gainFor(l); l.el.classList.toggle("off", !gainFor(l)); }); }
+function sync() {
+  L.forEach(l => l.el.querySelectorAll("[data-a]").forEach(b => b.setAttribute("aria-pressed", String(!!l[b.dataset.a]))));
+  document.querySelectorAll("[data-p]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.p === preset)));
+  applyGains();
+}
+function setPreset(p) {
+  preset = p; L.forEach(l => { l.solo = false; l.mute = false; });
+  if (p === "both") L[0].mute = true; else L.find(l => l.k === p).solo = true;
+  sync();
+}
+document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => setPreset(b.dataset.p));
+
+/* ---------- audio engine ---------- */
+const pos = () => playing ? Math.min(dur, ac.currentTime - t0) : off;
+function stopSrc() { L.forEach(l => { if (l.s) { try { l.s.stop(); } catch {} l.s.disconnect(); l.s = null; } }); }
+function start(at) {
+  if (!dur) return; ac.resume(); stopSrc(); off = at; t0 = ac.currentTime - at;
+  L.forEach(l => { const s = ac.createBufferSource(); s.buffer = l.buf; l.g = ac.createGain(); s.connect(l.g).connect(ac.destination); l.s = s; s.start(0, at); });
+  applyGains(); playing = true; ui();
+}
+function pause() { if (!playing) return; off = pos(); stopSrc(); playing = false; ui(); }
+function seek(f) { const at = f * dur; if (playing) start(at); else { off = at; } }
+function ui() {
+  $("#ico").innerHTML = playing ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+  $("#pp").setAttribute("aria-label", playing ? "Pause" : "Play");
+}
+function tick() {
+  if (dur) {
+    if (playing && pos() >= dur - .03) { if (loop) start(0); else { playing = false; off = 0; stopSrc(); ui(); } }
+    const q = pos(); L.forEach(l => l.ph.style.left = (q / dur * 100) + "%");
+    $("#tm").textContent = fmtT(q) + " / " + fmtT(dur);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- waveforms ---------- */
+function drawWave(l) {
+  if (!l.buf) return;
+  const r = fit(l.cv), w = r.width, h = r.height, a = l.buf.getChannelData(0), b = l.buf.numberOfChannels > 1 ? l.buf.getChannelData(1) : a;
+  const n = Math.floor(w / 3), step = Math.max(1, Math.floor(a.length / n)), pk = new Float32Array(n); let mx = 1e-6;
+  for (let i = 0; i < n; i++) { let m = 0; for (let j = i * step, e = Math.min(a.length, j + step), s = Math.max(1, step >> 6); j < e; j += s) { const v = Math.max(Math.abs(a[j]), Math.abs(b[j])); if (v > m) m = v; } pk[i] = m; if (m > mx) mx = m; }
+  const g = l.cv.getContext("2d"); g.clearRect(0, 0, w, h); g.fillStyle = css(l.c);
+  for (let i = 0; i < n; i++) { const hh = Math.max(1, pk[i] / mx * h * .46); g.fillRect(i * 3, h / 2 - hh, 2, hh * 2); }
+}
+const drawAll = () => L.forEach(drawWave);
+addEventListener("resize", drawAll);
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", drawAll);
+
+/* ---------- loading a sample ---------- */
+async function load(i) {
+  pause(); cur = i; off = 0; dur = 0;
+  document.querySelectorAll(".song").forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+  const st = $("#state"); st.hidden = false; st.textContent = "Loading stems…"; $("#lanes").classList.add("dim");
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const bufs = await Promise.all(L.map(l => fetch(SAMPLES[i].dir + l.f).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then(b => ac.decodeAudioData(b))));
+    if (i !== cur) return;
+    L.forEach((l, j) => { l.buf = bufs[j]; const a = l.el.querySelector(".dl"); a.href = SAMPLES[i].dir + l.f; a.download = SAMPLES[i].title + " - " + l.name + ".mp3"; });
+    dur = Math.max(...bufs.map(b => b.duration));
+    st.hidden = true; $("#lanes").classList.remove("dim"); drawAll(); setPreset("both");
+  } catch (e) {
+    st.textContent = "Could not load this demo. If you opened the file directly, serve the folder instead (python3 -m http.server) so the browser can fetch the audio.";
+  }
+}
+document.querySelectorAll(".song").forEach(b => b.onclick = () => load(+b.dataset.i));
+
+/* ---------- controls ---------- */
+$("#pp").onclick = () => playing ? pause() : start(off >= dur - .05 ? 0 : off);
+$("#lp").onclick = e => { loop = !loop; e.currentTarget.setAttribute("aria-pressed", String(loop)); };
+$("#copy").onclick = e => { navigator.clipboard.writeText($("#cmd").textContent); e.target.textContent = "Copied"; setTimeout(() => e.target.textContent = "Copy", 1500); };
+addEventListener("keydown", e => {
+  if (/INPUT|TEXTAREA/.test(e.target.tagName) && e.target.type !== "range") return;
+  if (e.key === " " && !/BUTTON|A/.test(e.target.tagName)) { e.preventDefault(); $("#pp").click(); }
+  else if (e.key === "ArrowRight" && e.target.type !== "range" && dur) seek(Math.min(dur, pos() + 5) / dur);
+  else if (e.key === "ArrowLeft" && e.target.type !== "range" && dur) seek(Math.max(0, pos() - 5) / dur);
+});
+/* ---------- hero: vocals rise above the line, the instrumental falls below it ---------- */
+const hc = $("#hero"), hx = hc.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let HW = 0, HH = 0, hv = "", hi = "", ht = 0;
+function sizeHero() { const r = fit(hc); HW = r.width; HH = r.height; hv = css("--voc"); hi = css("--ins"); if (still) heroFrame(); }
+function heroFrame() {
+  const n = Math.floor(HW / 7), m = HH / 2, amp = playing ? 1 : .72;
+  hx.clearRect(0, 0, HW, HH);
+  for (let i = 0; i < n; i++) {
+    const env = Math.pow(Math.sin(Math.PI * i / n), .8), x = i * 7 + 2;
+    const a = (.3 + .7 * Math.abs(Math.sin(i * .37 + ht) * Math.sin(i * .11 - ht * .6))) * env * (m - 8) * amp;
+    const b = (.25 + .75 * Math.abs(Math.sin(i * .23 - ht * .8) * Math.cos(i * .07 + ht * .5))) * env * (m - 8) * amp;
+    hx.fillStyle = hv; hx.fillRect(x, m - a - 1.5, 4, a);
+    hx.fillStyle = hi; hx.fillRect(x, m + 1.5, 4, b);
+  }
+}
+function heroLoop() { heroFrame(); ht += playing ? .05 : .014; requestAnimationFrame(heroLoop); }
+addEventListener("resize", sizeHero);
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", sizeHero);
+sizeHero(); if (!still) heroLoop();
+tick(); load(0);
+</script>
+</body>
+</html>
