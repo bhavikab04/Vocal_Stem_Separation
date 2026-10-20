@@ -9,8 +9,9 @@
 
 > The hosted page is a static showcase. To separate your own songs, run the app locally (see [Run it locally](#run-it-locally)).
 
-
-[App screenshot](docs/screenshot.png)
+<p align="center">
+  <img src="docs/screenshot.png" alt="Vocal Separator web app screenshot" width="800">
+</p>
 
 
 Instrument classification and vocal source separation on music mixtures using the [MoisesDB](https://arxiv.org/abs/2307.15913) dataset (80 songs, each with isolated stems). The project compares feature-based and neural classifiers, trains a Transformer spectrogram model and a Hybrid Spectrogram-TasNet from scratch, then fine-tunes a pretrained HTDemucs and serves it through a web app.
