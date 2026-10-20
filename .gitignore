@@ -1,1 +1,18 @@
+# model weights and big audio
+*.pt
+*.pth
+*.ckpt
 *.wav
+jobs/
+
+# python / environments
+__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+
+# notebooks / OS / logs
+.ipynb_checkpoints/
+.DS_Store
+*.log

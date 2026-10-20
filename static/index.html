@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vocal Separator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1118;--panel:#151a24;--line:#252d3d;--fg:#e9edf5;--mut:#8b95a9;--voc:#ff7f9e;--ins:#4fd1e8;--orig:#b4bed2;--err:#ff8a8a;color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--bg:#f5f6fa;--panel:#fff;--line:#dde2ec;--fg:#141824;--mut:#5b657a;--voc:#d92f64;--ins:#0d8aa3;--orig:#6a7489;--err:#c0392b;color-scheme:light}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg) radial-gradient(900px 380px at 70% -80px,color-mix(in srgb,var(--ins) 12%,transparent),transparent) no-repeat;color:var(--fg);font:400 16px/1.55 "Hanken Grotesk",system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:920px;margin:0 auto;padding:0 22px}
+header{border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.01em}
+.tag{color:var(--mut);font-size:14px}
+h1{font:400 clamp(2.5rem,6.4vw,4.2rem)/1.02 "Instrument Serif",Georgia,serif;letter-spacing:-.015em;margin:64px 0 16px;max-width:14em}
+.lead{color:var(--mut);max-width:34em;margin:0 0 36px;font-size:18px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+#drop{cursor:pointer;transition:border-color .2s}
+#drop:hover,#drop.over,#drop:focus-visible{border-color:color-mix(in srgb,var(--fg) 45%,var(--line));outline:none}
+#wave{display:block;width:100%;height:150px}
+.dz{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;border-top:1px solid var(--line);flex-wrap:wrap}
+.dz b{font-weight:600;display:block}.dz span{color:var(--mut);font-size:14px}
+button,.dl{font:inherit;cursor:pointer}
+.pri{background:var(--fg);color:var(--bg);border:0;border-radius:999px;padding:10px 20px;font-weight:600}
+.sm{background:transparent;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none;display:inline-block;line-height:1.6}
+.sm:hover{color:var(--fg);border-color:var(--mut)}
+.sm[aria-pressed=true]{background:var(--c,var(--fg));border-color:var(--c,var(--fg));color:var(--bg)}
+:focus-visible{outline:2px solid var(--ins);outline-offset:2px}
+#busy{padding:30px 24px}
+.fname{font-weight:600;margin-bottom:18px;overflow-wrap:anywhere}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--voc),var(--ins));border-radius:6px;transition:width .2s}
+.bar.ind i{width:35%;animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
+.bmeta{display:flex;justify-content:space-between;gap:12px;margin-top:12px;color:var(--mut);font-size:14px}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lane{padding:16px 20px 18px;border-top:1px solid var(--line)}.lane:first-child{border-top:0}
+.lh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.lh b{font-weight:600}.dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.lc{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+input[type=range]{width:90px;accent-color:var(--c)}
+.wv{position:relative;height:84px;cursor:pointer;border-radius:10px;background:color-mix(in srgb,var(--c) 6%,transparent)}
+.wv canvas{width:100%;height:100%;display:block;transition:opacity .2s}
+.off .wv canvas{opacity:.28}
+.ph{position:absolute;top:0;bottom:0;left:0;width:2px;background:var(--fg);pointer-events:none;border-radius:2px}
+.tp{display:flex;align-items:center;gap:14px;padding:16px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.play{width:50px;height:50px;border-radius:50%;border:0;background:var(--fg);color:var(--bg);display:grid;place-items:center}
+.sp{flex:1}
+.hint{color:var(--mut);font-size:14px;margin:14px 2px 0}
+#err{color:var(--err);min-height:24px;margin:14px 2px 0}
+footer{color:var(--mut);font-size:14px;padding:44px 0 40px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.bar.ind i{animation:none;width:100%;opacity:.5}*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M3 12V9M3 12v2" stroke="var(--voc)"/><path d="M7 12V5" stroke="var(--voc)"/><path d="M11 12V8" stroke="var(--voc)"/><path d="M15 12V3" stroke="var(--voc)"/><path d="M19 12V7" stroke="var(--voc)"/><path d="M7 12v4M11 12v7M15 12v5M19 12v3" stroke="var(--ins)"/></svg>Vocal Separator</div>
+  <div class="tag">HTDemucs, running on this computer</div>
+</div></header>
+<main class="wrap">
+  <h1>Pull the voice out of any song.</h1>
+  <p class="lead">Drop in a track and get clean vocals and a backing track. Solo each one, loop a section, and download the results.</p>
+
+  <div class="box" id="stage">
+    <div id="drop" tabindex="0" role="button" aria-label="Choose a song to separate">
+      <canvas id="wave" aria-hidden="true"></canvas>
+      <div class="dz"><div><b>Drop a song here</b><span>mp3, wav, flac or m4a</span></div><button class="pri" type="button" id="pick">Choose file</button></div>
+    </div>
+    <input id="file" type="file" accept="audio/*" hidden>
+
+    <div id="busy" hidden>
+      <div class="fname" id="bname"></div>
+      <div class="bar" id="bar"><i id="bfill"></i></div>
+      <div class="bmeta"><span id="bstage"></span><span class="num" id="btime">0:00</span></div>
+    </div>
+
+    <div id="player" hidden>
+      <div id="lanes"></div>
+      <div class="tp">
+        <button class="play" id="pp" aria-label="Play"><svg id="ico" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+        <span class="num" id="tm">0:00 / 0:00</span>
+        <button class="sm" id="lp" aria-pressed="false">Loop</button>
+        <span class="sp"></span>
+        <button class="sm" id="dlall">Download both</button>
+        <button class="sm" id="again">Separate another</button>
+      </div>
+    </div>
+  </div>
+  <p class="hint" id="hint" hidden>Solo Vocals or Instrumental to compare against the original. Space plays and pauses, the arrow keys skip 5 seconds, and clicking a waveform seeks.</p>
+  <p id="err" role="alert"></p>
+</main>
+<footer><div class="wrap">Everything runs on your own computer. Your audio is not sent to any third party.</div></footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtT = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+const mb = b => (b / 1048576).toFixed(1) + " MB";
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function fit(c) { const r = c.getBoundingClientRect(), d = devicePixelRatio || 1; c.width = r.width * d; c.height = r.height * d; c.getContext("2d").setTransform(d, 0, 0, d, 0, 0); return r; }
+
+/* ---------- idle waveform: upper half = vocals, lower half = instrumental ---------- */
+const cv = $("#wave"), cx = cv.getContext("2d");
+let W = 0, H = 0, tt = 0, looping = false, col = {};
+function sizeIdle() { const r = fit(cv); W = r.width; H = r.height; col = { v: css("--voc"), i: css("--ins") }; if (!looping) idle(true); }
+function idle(once) {
+  looping = !once && !$("#drop").hidden;
+  const n = Math.floor(W / 7), m = H / 2; cx.clearRect(0, 0, W, H);
+  for (let i = 0; i < n; i++) {
+    const env = Math.pow(Math.sin(Math.PI * i / n), .8), x = i * 7 + 2;
+    const a = (.3 + .7 * Math.abs(Math.sin(i * .37 + tt) * Math.sin(i * .11 - tt * .6))) * env * (m - 8);
+    const b = (.25 + .75 * Math.abs(Math.sin(i * .23 - tt * .8) * Math.cos(i * .07 + tt * .5))) * env * (m - 8);
+    cx.fillStyle = col.v; cx.fillRect(x, m - a - 1.5, 4, a);
+    cx.fillStyle = col.i; cx.fillRect(x, m + 1.5, 4, b);
+  }
+  if (!reduce) tt += .018;
+  if (looping && !reduce) requestAnimationFrame(() => idle(false)); else looping = false;
+}
+addEventListener("resize", () => { sizeIdle(); if (!$("#player").hidden) drawAll(); });
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { sizeIdle(); if (!$("#player").hidden) drawAll(); });
+
+/* ---------- views ---------- */
+function view(v) {
+  $("#drop").hidden = v !== "drop"; $("#busy").hidden = v !== "busy"; $("#player").hidden = v !== "player"; $("#hint").hidden = v !== "player";
+  if (v === "drop") sizeIdle();
+}
+const err = m => $("#err").textContent = m || "";
+function stage(text, p) {
+  $("#bstage").textContent = text;
+  if (p == null) $("#bar").classList.add("ind"); else { $("#bar").classList.remove("ind"); $("#bfill").style.width = p * 100 + "%"; }
+}
+
+/* ---------- upload ---------- */
+const post = f => new Promise((res, rej) => {
+  const x = new XMLHttpRequest(), fd = new FormData(); fd.append("file", f);
+  x.open("POST", "/separate");
+  x.upload.onprogress = e => e.lengthComputable && stage("Uploading " + Math.round(e.loaded / e.total * 100) + "%", e.loaded / e.total);
+  x.upload.onload = () => stage("Separating vocals. This can take a few minutes on a CPU.", null);
+  x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch {} x.status < 300 ? res(j) : rej(new Error(j.detail || x.statusText)); };
+  x.onerror = () => rej(new Error("Could not reach the server. Check that uvicorn is still running."));
+  x.send(fd);
+});
+
+/* ---------- audio engine ---------- */
+const L = [
+  { k: "orig", name: "Original", c: "--orig" },
+  { k: "voc", name: "Vocals", c: "--voc" },
+  { k: "ins", name: "Instrumental", c: "--ins" }
+];
+let ac, dur = 0, off = 0, t0 = 0, playing = false, loop = false, base = "song", raf = 0;
+const pos = () => playing ? Math.min(dur, ac.currentTime - t0) : off;
+const gainFor = l => (L.some(x => x.solo) ? l.solo : !l.mute) ? l.vol : 0;
+function applyGains() { L.forEach(l => { if (l.g) l.g.gain.value = gainFor(l); if (l.el) l.el.classList.toggle("off", !gainFor(l)); }); }
+function stopSrc() { L.forEach(l => { if (l.s) { try { l.s.stop(); } catch {} l.s.disconnect(); l.s = null; } }); }
+function start(at) {
+  stopSrc(); off = at; ac.resume(); t0 = ac.currentTime - at;
+  L.forEach(l => { if (!l.buf) return; const s = ac.createBufferSource(); s.buffer = l.buf; l.g = ac.createGain(); s.connect(l.g).connect(ac.destination); l.s = s; s.start(0, at); });
+  applyGains(); playing = true; ui();
+}
+function pause() { if (!playing) return; off = pos(); stopSrc(); playing = false; ui(); }
+function seek(f) { const at = f * dur; if (playing) start(at); else { off = at; ui(); } }
+function ui() {
+  $("#ico").innerHTML = playing ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+  $("#pp").setAttribute("aria-label", playing ? "Pause" : "Play");
+}
+function tick() {
+  if (!$("#player").hidden && dur) {
+    const p = pos();
+    if (playing && p >= dur - .03) { if (loop) start(0); else { playing = false; off = 0; stopSrc(); ui(); } }
+    const q = pos(); L.forEach(l => { if (l.ph) l.ph.style.left = (q / dur * 100) + "%"; });
+    $("#tm").textContent = fmtT(q) + " / " + fmtT(dur);
+  }
+  raf = requestAnimationFrame(tick);
+}
+
+/* ---------- waveform drawing ---------- */
+function drawWave(l) {
+  if (!l.buf) return;
+  const r = fit(l.cv), w = r.width, h = r.height, a = l.buf.getChannelData(0), b = l.buf.numberOfChannels > 1 ? l.buf.getChannelData(1) : a;
+  const n = Math.floor(w / 3), step = Math.max(1, Math.floor(a.length / n)), pk = new Float32Array(n); let mx = 1e-6;
+  for (let i = 0; i < n; i++) { let m = 0; for (let j = i * step, e = Math.min(a.length, j + step), s = Math.max(1, step >> 6); j < e; j += s) { const v = Math.max(Math.abs(a[j]), Math.abs(b[j])); if (v > m) m = v; } pk[i] = m; if (m > mx) mx = m; }
+  const g = l.cv.getContext("2d"); g.clearRect(0, 0, w, h); g.fillStyle = css(l.c);
+  for (let i = 0; i < n; i++) { const hh = Math.max(1, pk[i] / mx * h * .46); g.fillRect(i * 3, h / 2 - hh, 2, hh * 2); }
+}
+const drawAll = () => L.forEach(drawWave);
+
+/* ---------- build player ---------- */
+function build(urls) {
+  L.forEach(l => { l.el = l.cv = l.ph = l.g = null; });   // forget lanes from any previous song
+  $("#lanes").innerHTML = L.filter(l => l.buf).map(l => `
+    <div class="lane" data-k="${l.k}" style="--c:var(${l.c})">
+      <div class="lh"><span class="dot"></span><b>${l.name}</b>
+        <div class="lc">
+          <button class="sm" data-a="solo" aria-pressed="false" title="Hear only this track">Solo</button>
+          <button class="sm" data-a="mute" aria-pressed="false" title="Silence this track">Mute</button>
+          <input type="range" min="0" max="1" step=".01" value="1" aria-label="${l.name} volume">
+          ${l.k === "orig" ? "" : '<a class="sm dl" download>Download</a>'}
+        </div></div>
+      <div class="wv"><canvas></canvas><i class="ph"></i></div>
+    </div>`).join("");
+  L.forEach(l => {
+    if (!l.buf) return;
+    l.el = $(`.lane[data-k=${l.k}]`); l.cv = l.el.querySelector("canvas"); l.ph = l.el.querySelector(".ph");
+    l.vol = 1; l.mute = l.k === "orig"; l.solo = false;
+    const sync = () => { l.el.querySelectorAll("[data-a]").forEach(b => b.setAttribute("aria-pressed", String(!!l[b.dataset.a]))); applyGains(); };
+    l.el.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { l[b.dataset.a] = !l[b.dataset.a]; L.forEach(x => x.el && x.el.querySelectorAll("[data-a]").forEach(y => y.setAttribute("aria-pressed", String(!!x[y.dataset.a])))); applyGains(); });
+    l.el.querySelector("input").oninput = e => { l.vol = +e.target.value; applyGains(); };
+    l.el.querySelector(".wv").onclick = e => { const r = e.currentTarget.getBoundingClientRect(); seek((e.clientX - r.left) / r.width); };
+    const a = l.el.querySelector(".dl"); if (a) { a.href = urls[l.k]; a.download = base + "_" + (l.k === "voc" ? "vocals" : "instrumental") + ".wav"; }
+    sync();
+  });
+  drawAll(); applyGains();
+}
+
+/* ---------- main flow ---------- */
+async function run(file) {
+  if (!file) return;
+  if (!(file.type || "").startsWith("audio/") && !/\.(mp3|wav|flac|m4a|ogg|aac)$/i.test(file.name)) return err("That file doesn’t look like audio. Try an mp3, wav, flac or m4a.");
+  err(""); pause(); stopSrc(); view("busy");
+  $("#bname").textContent = file.name + "  ·  " + mb(file.size);
+  stage("Uploading 0%", 0);
+  const started = Date.now(), timer = setInterval(() => $("#btime").textContent = fmtT((Date.now() - started) / 1000), 250);
+  try {
+    const origBuf = file.arrayBuffer();
+    const d = await post(file);
+    stage("Preparing waveforms", null);
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const [ob, vb, ib] = await Promise.all([origBuf, ...[d.vocals, d.instrumental].map(u => fetch(u).then(r => r.arrayBuffer()))]);
+    const dec = b => ac.decodeAudioData(b);
+    L[1].buf = await dec(vb); L[2].buf = await dec(ib);
+    try { L[0].buf = await dec(ob); } catch { L[0].buf = null; }
+    base = file.name.replace(/\.[^.]+$/, ""); dur = Math.max(L[1].buf.duration, L[2].buf.duration); off = 0; playing = false;
+    view("player"); build({ voc: d.vocals, ins: d.instrumental }); ui();
+    cancelAnimationFrame(raf); tick();
+  } catch (e) { view("drop"); err("Separation failed: " + e.message); }
+  finally { clearInterval(timer); }
+}
+
+/* ---------- events ---------- */
+const drop = $("#drop"), input = $("#file");
+drop.onclick = () => input.click();
+drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } };
+input.onchange = () => { const f = input.files[0]; input.value = ""; run(f); };
+["dragenter", "dragover"].forEach(t => addEventListener(t, e => { e.preventDefault(); if (!drop.hidden) drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(t => addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+addEventListener("drop", e => { if (!drop.hidden && e.dataTransfer.files[0]) run(e.dataTransfer.files[0]); });
+$("#pp").onclick = () => playing ? pause() : start(off >= dur - .05 ? 0 : off);
+$("#lp").onclick = e => { loop = !loop; e.currentTarget.setAttribute("aria-pressed", String(loop)); };
+$("#again").onclick = () => { pause(); stopSrc(); view("drop"); err(""); };
+$("#dlall").onclick = () => document.querySelectorAll(".dl").forEach((a, i) => setTimeout(() => a.click(), i * 400));
+addEventListener("keydown", e => {
+  if ($("#player").hidden || /INPUT|TEXTAREA/.test(e.target.tagName) && e.target.type !== "range") return;
+  if (e.key === " " && e.target.tagName !== "BUTTON" && e.target.tagName !== "A") { e.preventDefault(); $("#pp").click(); }
+  else if (e.key === "ArrowRight" && e.target.type !== "range") seek(Math.min(dur, pos() + 5) / dur);
+  else if (e.key === "ArrowLeft" && e.target.type !== "range") seek(Math.max(0, pos() - 5) / dur);
+});
+view("drop");
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 # Vocal_Stem_Separation
-In this project, instrument classification and vocal source separation is done from music mixtures using different architectures on the MoisesDB dataset. It compares simple feature-based and neural network based classification and then uses Transformer-based spectrogram model and a Hybrid Spectrogram-TasNet to isolate vocals from full tracks.
+In this project, instrument classification and vocal source separation are done on music mixtures using several architectures on the MoisesDB dataset. It compares feature-based and neural classifiers, trains a Transformer-based spectrogram model and a Hybrid Spectrogram-TasNet from scratch to isolate vocals, then fine-tunes a pretrained HTDemucs model and serves it through a web app.
 
 Trained on the [MoisesDB](https://arxiv.org/abs/2307.15913) dataset — used 80 songs, each with isolated stems (vocals, drums, guitar, bass, etc.). The goal is to take a full mixture track and pull out just the vocals.
 
@@ -41,6 +41,33 @@ The branches are combined by summation rather than concatenation (that's the "Sm
 **Multi-domain loss:** spectral L1 in log-space + waveform L1. The waveform term is ramped up over the first 10 epochs so the spectrogram branch stabilises before the waveform branch starts contributing gradients — otherwise the harder waveform optimization drags the whole model down early on.
 
 ---
+
+### Stage 4 — Fine-tuning pretrained HTDemucs
+
+Both from-scratch models struggled at this data scale (waveform-level SDR stayed negative), so the next step was to start from a model trained on far more data. I fine-tuned pretrained HTDemucs ([Rouard et al., 2022](https://arxiv.org/abs/2211.08553)) on MoisesDB (`finetune_vocals.py`).
+
+- **Data pipeline:** MoisesDB stems are grouped into HTDemucs's four sources (vocals, drums + percussion, bass, other), and every wav in a stem folder is summed. Training samples are random 7.8 s stereo crops at 44.1 kHz with gain, polarity and channel-swap augmentation. Half of the samples are remixes built from stems of different songs.
+- **Training:** AdamW, learning rate 3e-5 with cosine decay, mixed precision, 12 epochs × 60 steps with an effective batch of 8 (micro-batch 1, gradient accumulation 8, to fit a T4). Loss is waveform L1 with vocals weighted 3×.
+- **Evaluation:** 10 songs were held out. Vocal SDR was computed on 30 s vocal-heavy excerpts, comparing the pretrained baseline against the fine-tuned model. Training took about 43 minutes on one T4.
+
+| Model | Held-out vocal SDR |
+|---|---|
+| Pretrained HTDemucs | 11.51 dB |
+| Fine-tuned on MoisesDB | 11.54 dB |
+
+The gain of about 0.03 dB is within noise for a 10-song validation set (and the best epoch was selected on the same songs), so the practical conclusion is that fine-tuning on ~70 songs does not meaningfully improve an already strong pretrained model. The pretrained weights are the app's default; the fine-tuned checkpoint can be dropped in as `htdemucs_vocals_ft.pt`.
+
+### Stage 5 — Web app
+
+A FastAPI backend (`server.py`) runs HTDemucs separation and a single-page front end (`static/index.html`) lets you upload a song and get isolated vocals and an instrumental. The page shows upload progress, a synced three-track player (original, vocals, instrumental) with waveforms, solo/mute/volume per track, looping, and downloads.
+
+**Run it locally**
+
+1. Install Python 3.10+ and ffmpeg (`winget install ffmpeg` / `sudo apt install ffmpeg` / `brew install ffmpeg`).
+2. Windows: double-click `run.bat`. Linux/Mac: `bash run.sh`.
+3. Open http://localhost:8000.
+
+The first launch downloads the pretrained model (internet needed). On a CPU a full song takes several minutes, so try a 30-second clip first.
 
 ## Architecture summary
 
